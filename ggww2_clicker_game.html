@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GGWW2 Bouncy Clicker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastel: {
+                            pink: '#ffb7c5',
+                            purple: '#d8b4fe',
+                            blue: '#a5f3fc',
+                            dark: '#1e1b2e',
+                            card: '#2a2438',
+                            border: '#3d3553',
+                            accent: '#f472b6',
+                            yellow: '#fef08a'
+                        }
+                    },
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        nunito: ['Nunito', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #1a1625;
+            color: #f3f4f6;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .title-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Bounce animations */
+        @keyframes custom-bounce {
+            0%, 100% { transform: scale(1) translateY(0); }
+            30% { transform: scale(1.15, 0.85) translateY(10px); }
+            50% { transform: scale(0.85, 1.2) translateY(-30px); }
+            75% { transform: scale(1.05, 0.95) translateY(-5px); }
+        }
+
+        .bounce-active {
+            animation: custom-bounce 0.45s ease-in-out;
+        }
+
+        /* Floating text popup animation */
+        @keyframes float-up {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(0.8) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-40px) scale(1.2) rotate(-5deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-80px) scale(1) rotate(5deg);
+            }
+        }
+
+        .floating-text {
+            position: absolute;
+            pointer-events: none;
+            animation: float-up 0.8s ease-out forwards;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            z-index: 50;
+        }
+
+        /* Particle effect animation */
+        @keyframes particle-fade {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0);
+            }
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: particle-fade 0.6s cubic-bezier(0, .9, .57, 1) forwards;
+            z-index: 45;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2a2438;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f472b6;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ec4899;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden text-slate-100">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full bg-pastel-card border-b border-pastel-border py-3 px-4 sm:px-8 flex justify-between items-center shadow-lg relative z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-400 flex items-center justify-center text-white text-xl shadow-md">
+                <i class="fa-solid fa-cat"></i>
+            </div>
+            <div>
+                <h1 class="title-font text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-300 via-purple-300 to-cyan-300 bg-clip-text text-transparent">
+                    GGWW2 Bouncy Clicker
+                </h1>
+                <p class="text-xs text-purple-300 hidden sm:block">Click her to make her boing!</p>
+            </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button id="soundToggleBtn" onclick="toggleMute()" class="bg-pastel-border hover:bg-slate-700 text-pink-300 p-2 sm:px-3 sm:py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 border border-purple-500/30">
+                <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+                <span class="hidden sm:inline" id="soundLabel">Sound ON</span>
+            </button>
+            <button onclick="openSettingsModal()" class="bg-pastel-border hover:bg-slate-700 text-purple-300 p-2 sm:px-3 sm:py-2 rounded-xl text-sm font-semibold transition flex items-center gap-2 border border-purple-500/30">
+                <i class="fa-solid fa-gear"></i>
+                <span class="hidden sm:inline">Sprites</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-7xl mx-auto w-full p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+        
+        <!-- LEFT COLUMN: Main Interactive Clicker Area -->
+        <section class="lg:col-span-7 flex flex-col items-center justify-between bg-pastel-card/80 backdrop-blur rounded-3xl p-6 border border-pastel-border shadow-2xl relative overflow-hidden">
+            
+            <!-- Background Glow Effect -->
+            <div class="absolute -top-24 -left-24 w-72 h-72 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Score Stats Display -->
+            <div class="w-full text-center space-y-2 z-10">
+                <div class="inline-block bg-purple-950/60 border border-purple-500/30 px-4 py-1.5 rounded-full text-xs font-semibold text-purple-200 mb-1">
+                    <i class="fa-solid fa-star text-amber-300 mr-1"></i> Level <span id="playerLevel">1</span> - <span id="levelTitle">Novice Bouncer</span>
+                </div>
+                <div class="flex items-center justify-center gap-2">
+                    <span id="clickCountDisplay" class="title-font text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-cyan-200">
+                        0
+                    </span>
+                    <span class="title-font text-2xl text-pink-400 font-bold">Clicks</span>
+                </div>
+                
+                <div class="flex justify-center gap-6 text-sm sm:text-base font-semibold text-slate-300 pt-1">
+                    <div class="bg-slate-900/40 px-4 py-1.5 rounded-xl border border-slate-700/50">
+                        <i class="fa-solid fa-bolt text-yellow-400 mr-1"></i>
+                        Per Click: <span id="clickPowerDisplay" class="text-pink-300">1</span>
+                    </div>
+                    <div class="bg-slate-900/40 px-4 py-1.5 rounded-xl border border-slate-700/50">
+                        <i class="fa-solid fa-stopwatch text-cyan-400 mr-1"></i>
+                        CPS: <span id="cpsDisplay" class="text-cyan-300">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GGWW2 Interactive Character Frame -->
+            <div id="clickerContainer" class="relative my-8 sm:my-12 flex items-center justify-center w-full min-h-[300px] sm:min-h-[360px] cursor-pointer">
+                
+                <!-- Circular Aura Glow behind GGWW2 -->
+                <div id="glowCircle" class="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 blur-xl transition-all duration-300"></div>
+
+                <!-- GGWW2 Sprite Wrapper -->
+                <div id="ggww2Wrapper" class="relative z-10 transition-transform hover:scale-105 active:scale-95">
+                    <!-- Default SVG Mascot / Custom Image -->
+                    <img id="ggww2Image" src="" alt="GGWW2" class="w-60 h-60 sm:w-72 sm:h-72 object-contain drop-shadow-[0_15px_25px_rgba(244,114,182,0.3)]" style="display: none;">
+                    
+                    <!-- SVG Mascot Fallback when no custom image uploaded -->
+                    <div id="ggww2Fallback" class="w-60 h-60 sm:w-72 sm:h-72 flex flex-col items-center justify-center relative">
+                        <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-2xl">
+                            <!-- Cat Ears -->
+                            <polygon points="45,70 20,20 80,45" fill="#f472b6" />
+                            <polygon points="50,65 30,30 75,48" fill="#fbcfe8" />
+                            <polygon points="155,70 180,20 120,45" fill="#f472b6" />
+                            <polygon points="150,65 170,30 125,48" fill="#fbcfe8" />
+                            <!-- Main Head -->
+                            <circle cx="100" cy="110" r="70" fill="#f472b6" />
+                            <circle cx="100" cy="115" r="58" fill="#fce7f3" />
+                            <!-- Eyes -->
+                            <ellipse id="eyeLeft" cx="75" cy="100" rx="9" ry="13" fill="#1e1b2e" />
+                            <ellipse id="eyeRight" cx="125" cy="100" rx="9" ry="13" fill="#1e1b2e" />
+                            <circle cx="78" cy="96" r="3.5" fill="#ffffff" />
+                            <circle cx="128" cy="96" r="3.5" fill="#ffffff" />
+                            <!-- Cute Cheeks -->
+                            <ellipse cx="60" cy="115" rx="10" ry="6" fill="#f43f5e" opacity="0.4" />
+                            <ellipse cx="140" cy="115" rx="10" ry="6" fill="#f43f5e" opacity="0.4" />
+                            <!-- Nose & Mouth -->
+                            <polygon points="96,110 104,110 100,115" fill="#f43f5e" />
+                            <path id="mouthPath" d="M 90 120 Q 95 126 100 120 Q 105 126 110 120" stroke="#1e1b2e" stroke-width="3" fill="none" stroke-linecap="round" />
+                            <!-- Bow tie -->
+                            <path d="M 85 170 L 100 160 L 115 170 L 115 150 L 100 160 L 85 150 Z" fill="#38bdf8" />
+                            <circle cx="100" cy="160" r="6" fill="#0284c7" />
+                        </svg>
+                        <span id="spriteStateLabel" class="text-xs bg-purple-900/80 text-purple-200 px-3 py-1 rounded-full border border-purple-500/40 -mt-4 shadow-md font-bold">
+                            Default Avatar (Idle)
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Prompt -->
+            <div class="w-full text-center text-xs sm:text-sm text-purple-300/70 font-semibold z-10 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-hand-pointer animate-bounce text-pink-400"></i>
+                <span>Click GGWW2 to trigger her bounce & sound!</span>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Upgrades, Helpers & Milestones -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+            
+            <!-- Tab Navigation for Shop & Achievements -->
+            <div class="bg-pastel-card border border-pastel-border p-1.5 rounded-2xl flex gap-2 shadow-lg">
+                <button id="tabShopBtn" onclick="switchTab('shop')" class="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 bg-pink-500 text-white shadow-md">
+                    <i class="fa-solid fa-store"></i> Shop & Upgrades
+                </button>
+                <button id="tabAchieveBtn" onclick="switchTab('achievements')" class="flex-1 py-2.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+                    <i class="fa-solid fa-trophy text-amber-400"></i> Achievements (<span id="achieveUnlockedCount">0</span>)
+                </button>
+            </div>
+
+            <!-- TAB 1: SHOP & UPGRADES -->
+            <div id="shopTab" class="bg-pastel-card border border-pastel-border rounded-3xl p-4 sm:p-5 shadow-xl flex-grow flex flex-col gap-4 overflow-y-auto max-h-[580px]">
+                
+                <!-- Section 1: Click Power Boosters -->
+                <div>
+                    <h3 class="title-font text-base font-bold text-pink-300 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-hand-fist text-pink-400"></i> Click Power Boosters
+                    </h3>
+                    <div id="clickUpgradesContainer" class="space-y-2.5">
+                        <!-- Dynamic Click Upgrades generated by JS -->
+                    </div>
+                </div>
+
+                <hr class="border-pastel-border my-1">
+
+                <!-- Section 2: Passive Auto-Clickers -->
+                <div>
+                    <h3 class="title-font text-base font-bold text-cyan-300 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-robot text-cyan-400"></i> Passive Helpers (CPS)
+                    </h3>
+                    <div id="autoUpgradesContainer" class="space-y-2.5">
+                        <!-- Dynamic Auto-Clickers generated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: ACHIEVEMENTS -->
+            <div id="achievementsTab" class="bg-pastel-card border border-pastel-border rounded-3xl p-4 sm:p-5 shadow-xl flex-grow hidden overflow-y-auto max-h-[580px]">
+                <h3 class="title-font text-base font-bold text-amber-300 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-award text-amber-400"></i> Milestones & Badges
+                </h3>
+                <div id="achievementsContainer" class="space-y-2.5">
+                    <!-- Dynamic Achievements generated by JS -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Custom Sprites Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-pastel-card border border-pastel-border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 transform scale-95 transition-transform duration-300 id-modal-content">
+            <div class="flex justify-between items-center border-b border-pastel-border pb-3">
+                <h3 class="title-font text-xl font-bold text-pink-300 flex items-center gap-2">
+                    <i class="fa-solid fa-image"></i> Custom GGWW2 Sprites
+                </h3>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Want to use your local artwork? Upload your local images for <strong class="text-pink-300">GGWW2IDLE</strong> and <strong class="text-pink-300">GGWW2BOUNCE</strong> below!
+            </p>
+
+            <!-- File Upload Input: IDLE -->
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-purple-200 block">1. GGWW2 IDLE Sprite (.png / .gif)</label>
+                <input type="file" id="idleFileInput" accept="image/*" class="block w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-500/20 file:text-pink-300 hover:file:bg-pink-500/30 cursor-pointer bg-slate-900/60 rounded-xl border border-slate-700/60">
+            </div>
+
+            <!-- File Upload Input: BOUNCE -->
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-purple-200 block">2. GGWW2 BOUNCE Sprite (.png / .gif)</label>
+                <input type="file" id="bounceFileInput" accept="image/*" class="block w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-500/20 file:text-purple-300 hover:file:bg-purple-500/30 cursor-pointer bg-slate-900/60 rounded-xl border border-slate-700/60">
+            </div>
+
+            <!-- Reset to default buttons -->
+            <div class="flex gap-2 pt-2 border-t border-pastel-border">
+                <button onclick="resetCustomSprites()" class="flex-1 py-2 rounded-xl text-xs font-bold text-red-300 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 transition">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> Reset to Default
+                </button>
+                <button onclick="closeSettingsModal()" class="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-pink-500 hover:bg-pink-600 shadow-md transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ===================================================================
+         * GAME STATE & CONFIGURATION
+         * =================================================================== */
+        let state = {
+            clicks: 0,
+            clickPower: 1,
+            cps: 0,
+            soundMuted: false,
+            idleSprite: null,
+            bounceSprite: null,
+            upgrades: {
+                // Click power upgrades
+                boingShoes: { count: 0, cost: 15, power: 1 },
+                orangeFanta: { count: 0, cost: 100, power: 5 },
+                goldenMarker: { count: 0, cost: 500, power: 25 },
+                pacoEnergy: { count: 0, cost: 2500, power: 100 },
+                // Auto clicker helpers
+                miniSlime: { count: 0, cost: 30, cps: 1 },
+                helperBot: { count: 0, cost: 200, cps: 8 },
+                marisaBroom: { count: 0, cost: 1200, cps: 40 },
+                bipedoAssistant: { count: 0, cost: 6000, cps: 180 },
+                matriarcaGuard: { count: 0, cost: 30000, cps: 800 }
+            },
+            achievements: {
+                firstClick: false,
+                clicks100: false,
+                clicks1000: false,
+                clicks10000: false,
+                firstUpgrade: false,
+                speedDemon: false
+            }
+        };
+
+        const CLICK_UPGRADES = [
+            { id: 'boingShoes', name: 'Boing Shoes', icon: 'fa-shoe-prints', desc: '+1 Click Power', baseCost: 15, power: 1 },
+            { id: 'orangeFanta', name: 'Orange Soda Rush', icon: 'fa-bottle-droplet', desc: '+5 Click Power', baseCost: 100, power: 5 },
+            { id: 'goldenMarker', name: 'Golden Marker', icon: 'fa-pen-nib', desc: '+25 Click Power', baseCost: 500, power: 25 },
+            { id: 'pacoEnergy', name: "Paco's Energy", icon: 'fa-bolt-lightning', desc: '+100 Click Power', baseCost: 2500, power: 100 }
+        ];
+
+        const AUTO_UPGRADES = [
+            { id: 'miniSlime', name: 'Mini Slime Pal', icon: 'fa-face-smile', desc: '+1 Click/sec', baseCost: 30, cps: 1 },
+            { id: 'helperBot', name: 'Helper Bot', icon: 'fa-robot', desc: '+8 Clicks/sec', baseCost: 200, cps: 8 },
+            { id: 'marisaBroom', name: "Marisa's Broom", icon: 'fa-wand-magic-sparkles', desc: '+40 Clicks/sec', baseCost: 1200, cps: 40 },
+            { id: 'bipedoAssistant', name: 'Bipedo Assistant', icon: 'fa-ghost', desc: '+180 Clicks/sec', baseCost: 6000, cps: 180 },
+            { id: 'matriarcaGuard', name: 'Matriarca Guard', icon: 'fa-shield-cat', desc: '+800 Clicks/sec', baseCost: 30000, cps: 800 }
+        ];
+
+        const ACHIEVEMENTS_DATA = [
+            { id: 'firstClick', name: 'First Boing!', desc: 'Click GGWW2 for the very first time.', icon: 'fa-hand-pointer', req: state => state.clicks >= 1 },
+            { id: 'clicks100', name: 'Bouncy Rookie', desc: 'Reach 100 total Clicks.', icon: 'fa-feather', req: state => state.clicks >= 100 },
+            { id: 'clicks1000', name: 'Jumping Enthusiast', desc: 'Reach 1,000 total Clicks.', icon: 'fa-fire', req: state => state.clicks >= 1000 },
+            { id: 'clicks10000', name: 'Master of Bounce', desc: 'Reach 10,000 total Clicks.', icon: 'fa-crown', req: state => state.clicks >= 10000 },
+            { id: 'firstUpgrade', name: 'Power Up!', desc: 'Purchase your first shop upgrade.', icon: 'fa-cart-shopping', req: state => Object.values(state.upgrades).some(u => u.count > 0) },
+            { id: 'speedDemon', name: 'Boing Speed Demon', desc: 'Reach 50 Clicks Per Second (CPS).', icon: 'fa-gauge-high', req: state => state.cps >= 50 }
+        ];
+
+        /* ===================================================================
+         * WEB AUDIO SYNTHESIZER (No external audio files needed!)
+         * =================================================================== */
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    audioCtx = new AudioContext();
+                }
+            }
+        }
+
+        // Cute "Boing!" sound synth
+        function playBoingSound() {
+            if (state.soundMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                // Pitch slide from 220Hz up to 580Hz for iconic boing sound
+                const now = audioCtx.currentTime;
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(620, now + 0.18);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.3);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } catch (e) { console.log(e); }
+        }
+
+        // Purchase Chime Sound Synth
+        function playPurchaseSound() {
+            if (state.soundMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                [523.25, 659.25, 783.99].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.2);
+                });
+            } catch (e) { console.log(e); }
+        }
+
+        // Achievement Unlock Fanfare
+        function playUnlockSound() {
+            if (state.soundMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.25);
+                });
+            } catch (e) { console.log(e); }
+        }
+
+        /* ===================================================================
+         * CORE INTERACTION & ANIMATIONS
+         * =================================================================== */
+        const clickerContainer = document.getElementById('clickerContainer');
+        const ggww2Wrapper = document.getElementById('ggww2Wrapper');
+        const ggww2Image = document.getElementById('ggww2Image');
+        const ggww2Fallback = document.getElementById('ggww2Fallback');
+        const spriteStateLabel = document.getElementById('spriteStateLabel');
+
+        let bounceTimeout = null;
+
+        clickerContainer.addEventListener('pointerdown', (e) => {
+            // Trigger score
+            addClicks(state.clickPower);
+
+            // Play boing audio
+            playBoingSound();
+
+            // Perform bounce animation
+            triggerBounce();
+
+            // Spawn floating text (+1 / multiplier)
+            spawnFloatingText(e.clientX, e.clientY, `+${state.clickPower}`);
+
+            // Spawn particle bursting stars
+            spawnParticles(e.clientX, e.clientY);
+        });
+
+        function triggerBounce() {
+            // Add CSS bounce class
+            ggww2Wrapper.classList.remove('bounce-active');
+            void ggww2Wrapper.offsetWidth; // Force reflow
+            ggww2Wrapper.classList.add('bounce-active');
+
+            // Switch to BOUNCE sprite if custom sprite is present
+            if (state.bounceSprite) {
+                ggww2Image.src = state.bounceSprite;
+            } else {
+                // Morph SVG fallback face slightly during bounce
+                const mouth = document.getElementById('mouthPath');
+                if (mouth) mouth.setAttribute('d', 'M 90 115 Q 100 130 110 115');
+                spriteStateLabel.textContent = "Default Avatar (BOING!)";
+                spriteStateLabel.classList.replace('text-purple-200', 'text-pink-300');
+            }
+
+            clearTimeout(bounceTimeout);
+            bounceTimeout = setTimeout(() => {
+                ggww2Wrapper.classList.remove('bounce-active');
+                if (state.idleSprite) {
+                    ggww2Image.src = state.idleSprite;
+                } else {
+                    const mouth = document.getElementById('mouthPath');
+                    if (mouth) mouth.setAttribute('d', 'M 90 120 Q 95 126 100 120 Q 105 126 110 120');
+                    spriteStateLabel.textContent = "Default Avatar (Idle)";
+                    spriteStateLabel.classList.replace('text-pink-300', 'text-purple-200');
+                }
+            }, 450);
+        }
+
+        function spawnFloatingText(x, y, text) {
+            const rect = clickerContainer.getBoundingClientRect();
+            // Calculate relative coordinate to place popup correctly
+            const el = document.createElement('div');
+            el.className = 'floating-text text-pink-300 text-2xl sm:text-3xl';
+            el.textContent = text;
+
+            // Random slight X jitter for visual flair
+            const jitterX = (Math.random() - 0.5) * 40;
+            el.style.left = `${x - rect.left + jitterX}px`;
+            el.style.top = `${y - rect.top - 20}px`;
+
+            clickerContainer.appendChild(el);
+
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function spawnParticles(x, y) {
+            const rect = clickerContainer.getBoundingClientRect();
+            const colors = ['#f472b6', '#d8b4fe', '#a5f3fc', '#fef08a'];
+            const icons = ['✨', '⭐', '💖', '💥'];
+
+            for (let i = 0; i < 6; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle text-sm select-none';
+                particle.textContent = icons[Math.floor(Math.random() * icons.length)];
+
+                const destX = (Math.random() - 0.5) * 120;
+                const destY = (Math.random() - 0.5) * 120 - 40;
+
+                particle.style.setProperty('--tw-translate-x', `${destX}px`);
+                particle.style.setProperty('--tw-translate-y', `${destY}px`);
+                particle.style.left = `${x - rect.left}px`;
+                particle.style.top = `${y - rect.top}px`;
+
+                clickerContainer.appendChild(particle);
+                setTimeout(() => particle.remove(), 600);
+            }
+        }
+
+        /* ===================================================================
+         * GAME LOGIC, STATS & SHOP
+         * =================================================================== */
+        function addClicks(amount) {
+            state.clicks += amount;
+            updateStatsUI();
+            checkAchievements();
+            saveGame();
+        }
+
+        function recalculateStats() {
+            // Recalculate total Click Power
+            let basePower = 1;
+            CLICK_UPGRADES.forEach(u => {
+                basePower += (state.upgrades[u.id]?.count || 0) * u.power;
+            });
+            state.clickPower = basePower;
+
+            // Recalculate total CPS
+            let baseCPS = 0;
+            AUTO_UPGRADES.forEach(u => {
+                baseCPS += (state.upgrades[u.id]?.count || 0) * u.cps;
+            });
+            state.cps = baseCPS;
+
+            updateStatsUI();
+            renderShop();
+        }
+
+        function updateStatsUI() {
+            document.getElementById('clickCountDisplay').textContent = Math.floor(state.clicks).toLocaleString();
+            document.getElementById('clickPowerDisplay').textContent = state.clickPower.toLocaleString();
+            document.getElementById('cpsDisplay').textContent = state.cps.toLocaleString();
+
+            // Calculate level/rank based on total clicks
+            const level = Math.floor(Math.log10(state.clicks + 1) * 3) + 1;
+            document.getElementById('playerLevel').textContent = level;
+
+            const titles = ['Novice Bouncer', 'Boing Trainee', 'Super Jumper', 'Paco Friend', 'Bipedo Master', 'Cosmic Hopper', 'GGWW2 Legend'];
+            const titleIndex = Math.min(Math.floor(level / 2), titles.length - 1);
+            document.getElementById('levelTitle').textContent = titles[titleIndex];
+        }
+
+        function getItemCost(baseCost, count) {
+            return Math.floor(baseCost * Math.pow(1.15, count));
+        }
+
+        function buyUpgrade(id, type) {
+            const list = type === 'click' ? CLICK_UPGRADES : AUTO_UPGRADES;
+            const item = list.find(x => x.id === id);
+            if (!item) return;
+
+            const currentCount = state.upgrades[id]?.count || 0;
+            const cost = getItemCost(item.baseCost, currentCount);
+
+            if (state.clicks >= cost) {
+                state.clicks -= cost;
+                state.upgrades[id].count = currentCount + 1;
+                playPurchaseSound();
+                recalculateStats();
+                checkAchievements();
+                saveGame();
+            }
+        }
+
+        /* ===================================================================
+         * UI RENDERING (SHOP & ACHIEVEMENTS)
+         * =================================================================== */
+        function renderShop() {
+            const clickContainer = document.getElementById('clickUpgradesContainer');
+            const autoContainer = document.getElementById('autoUpgradesContainer');
+
+            clickContainer.innerHTML = CLICK_UPGRADES.map(u => {
+                const count = state.upgrades[u.id]?.count || 0;
+                const cost = getItemCost(u.baseCost, count);
+                const canAfford = state.clicks >= cost;
+
+                return `
+                    <div class="bg-slate-900/50 border ${canAfford ? 'border-pink-500/40 hover:border-pink-400' : 'border-slate-800 opacity-60'} p-3 rounded-2xl flex items-center justify-between transition shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-300 flex items-center justify-center text-lg border border-pink-500/30">
+                                <i class="fa-solid ${u.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-100">${u.name} <span class="text-xs text-pink-300 font-semibold">(x${count})</span></h4>
+                                <p class="text-xs text-slate-400">${u.desc}</p>
+                            </div>
+                        </div>
+                        <button onclick="buyUpgrade('${u.id}', 'click')" ${!canAfford ? 'disabled' : ''} 
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${canAfford ? 'bg-pink-500 hover:bg-pink-600 text-white shadow-md' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}">
+                            <i class="fa-solid fa-coins text-yellow-300"></i> ${cost.toLocaleString()}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            autoContainer.innerHTML = AUTO_UPGRADES.map(u => {
+                const count = state.upgrades[u.id]?.count || 0;
+                const cost = getItemCost(u.baseCost, count);
+                const canAfford = state.clicks >= cost;
+
+                return `
+                    <div class="bg-slate-900/50 border ${canAfford ? 'border-cyan-500/40 hover:border-cyan-400' : 'border-slate-800 opacity-60'} p-3 rounded-2xl flex items-center justify-between transition shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-lg border border-cyan-500/30">
+                                <i class="fa-solid ${u.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-100">${u.name} <span class="text-xs text-cyan-300 font-semibold">(x${count})</span></h4>
+                                <p class="text-xs text-slate-400">${u.desc}</p>
+                            </div>
+                        </div>
+                        <button onclick="buyUpgrade('${u.id}', 'auto')" ${!canAfford ? 'disabled' : ''} 
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${canAfford ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-md' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}">
+                            <i class="fa-solid fa-coins text-yellow-300"></i> ${cost.toLocaleString()}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderAchievements() {
+            const container = document.getElementById('achievementsContainer');
+            let unlockedCount = 0;
+
+            container.innerHTML = ACHIEVEMENTS_DATA.map(ach => {
+                const unlocked = state.achievements[ach.id];
+                if (unlocked) unlockedCount++;
+
+                return `
+                    <div class="p-3 rounded-2xl border flex items-center gap-3 transition ${unlocked ? 'bg-amber-950/30 border-amber-500/40 text-amber-200' : 'bg-slate-900/40 border-slate-800 text-slate-500 opacity-50'}">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg ${unlocked ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-600'}">
+                            <i class="fa-solid ${ach.icon}"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="font-bold text-sm ${unlocked ? 'text-amber-200' : 'text-slate-400'}">${ach.name}</h4>
+                            <p class="text-xs text-slate-400">${ach.desc}</p>
+                        </div>
+                        ${unlocked ? '<i class="fa-solid fa-circle-check text-amber-400 text-lg"></i>' : '<i class="fa-solid fa-lock text-slate-600 text-sm"></i>'}
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('achieveUnlockedCount').textContent = `${unlockedCount}/${ACHIEVEMENTS_DATA.length}`;
+        }
+
+        function checkAchievements() {
+            ACHIEVEMENTS_DATA.forEach(ach => {
+                if (!state.achievements[ach.id] && ach.req(state)) {
+                    state.achievements[ach.id] = true;
+                    playUnlockSound();
+                    renderAchievements();
+                }
+            });
+        }
+
+        function switchTab(tab) {
+            const shopTab = document.getElementById('shopTab');
+            const achievementsTab = document.getElementById('achievementsTab');
+            const shopBtn = document.getElementById('tabShopBtn');
+            const achieveBtn = document.getElementById('tabAchieveBtn');
+
+            if (tab === 'shop') {
+                shopTab.classList.remove('hidden');
+                achievementsTab.classList.add('hidden');
+                shopBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 bg-pink-500 text-white shadow-md";
+                achieveBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+            } else {
+                shopTab.classList.add('hidden');
+                achievementsTab.classList.remove('hidden');
+                achieveBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 bg-amber-500 text-white shadow-md";
+                shopBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+            }
+        }
+
+        /* ===================================================================
+         * CUSTOM SPRITE UPLOADER & SETTINGS MODAL
+         * =================================================================== */
+        function openSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        document.getElementById('idleFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    state.idleSprite = evt.target.result;
+                    applyCustomSprites();
+                    saveGame();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('bounceFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    state.bounceSprite = evt.target.result;
+                    saveGame();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function applyCustomSprites() {
+            if (state.idleSprite) {
+                ggww2Image.src = state.idleSprite;
+                ggww2Image.style.display = 'block';
+                ggww2Fallback.style.display = 'none';
+            } else {
+                ggww2Image.style.display = 'none';
+                ggww2Fallback.style.display = 'flex';
+            }
+        }
+
+        function resetCustomSprites() {
+            state.idleSprite = null;
+            state.bounceSprite = null;
+            document.getElementById('idleFileInput').value = '';
+            document.getElementById('bounceFileInput').value = '';
+            applyCustomSprites();
+            saveGame();
+        }
+
+        function toggleMute() {
+            state.soundMuted = !state.soundMuted;
+            const icon = document.getElementById('soundIcon');
+            const label = document.getElementById('soundLabel');
+            if (state.soundMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                label.textContent = 'Muted';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-pink-300';
+                label.textContent = 'Sound ON';
+            }
+        }
+
+        /* ===================================================================
+         * AUTO CLICKER TICK LOOP & LOCAL STORAGE
+         * =================================================================== */
+        setInterval(() => {
+            if (state.cps > 0) {
+                // Add 10th of CPS every 100ms for smooth updating
+                addClicks(state.cps / 10);
+            }
+        }, 100);
+
+        function saveGame() {
+            try {
+                localStorage.setItem('ggww2_clicker_save', JSON.stringify(state));
+            } catch (e) { console.log(e); }
+        }
+
+        function loadGame() {
+            try {
+                const data = localStorage.getItem('ggww2_clicker_save');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    state = { ...state, ...parsed };
+                }
+            } catch (e) { console.log(e); }
+
+            recalculateStats();
+            renderAchievements();
+            applyCustomSprites();
+        }
+
+        // Initialize game on window load
+        window.onload = function() {
+            loadGame();
+        };
+    </script>
+</body>
+</html>
